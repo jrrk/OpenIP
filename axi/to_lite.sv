@@ -427,29 +427,37 @@ module axi_to_lite #(
     // FIFOs for passing information around
     //
 
+    // Use assignment instead of the '{} syntax as Quartus doesn't support it yet.
+    xact_t rfifo_data;
+    xact_t wfifo_data;
+    assign rfifo_data.id  = master.ar_id;
+    assign rfifo_data.len = master.ar_len;
+    assign wfifo_data.id  = master.aw_id;
+    assign wfifo_data.len = master.aw_len;
+
     fifo #(
-        .TYPE     (xact_t),
+        .WIDTH    (ID_WIDTH + 8),
         .CAPACITY (MAX_R_XACT)
     ) rfifo (
         .clk     (clk),
         .rstn    (rstn),
         .w_valid (!ar_in_burst && master.ar_valid && master.ar_ready),
         .w_ready (rfifo_ready),
-        .w_data  (xact_t'{master.ar_id, master.ar_len}),
+        .w_data  (rfifo_data),
         .r_valid (rfifo_valid),
         .r_ready (!r_in_burst && slave.r_ready && slave.r_valid),
         .r_data  (rfifo_xact)
     );
 
     fifo #(
-        .TYPE     (xact_t),
+        .WIDTH    (ID_WIDTH + 8),
         .CAPACITY (MAX_W_XACT)
     ) wfifo (
         .clk     (clk),
         .rstn    (rstn),
         .w_valid (!aw_in_burst && master.aw_valid && master.aw_ready),
         .w_ready (wfifo_ready),
-        .w_data  (xact_t'{master.aw_id, master.aw_len}),
+        .w_data  (wfifo_data),
         .r_valid (wfifo_valid),
         .r_ready (!b_in_burst && slave.b_ready && slave.b_valid),
         .r_data  (wfifo_xact)

@@ -29,20 +29,20 @@
 // !w_ready as full and !r_valid as empty.
 // PASS_THROUGH can be set to 1 to allow zero cycle latency between push and pop when FIFO is empty.
 module fifo #(
-    parameter type TYPE = logic,
+    parameter WIDTH = 1,
     parameter CAPACITY = 1,
     parameter PASS_THROUGH = 0
 ) (
-    input  logic clk,
-    input  logic rstn,
+    input  logic             clk,
+    input  logic             rstn,
 
-    input  logic w_valid,
-    output logic w_ready,
-    input  TYPE  w_data,
+    input  logic             w_valid,
+    output logic             w_ready,
+    input  logic [WIDTH-1:0] w_data,
 
-    output logic r_valid,
-    input  logic r_ready,
-    output TYPE  r_data
+    output logic             r_valid,
+    input  logic             r_ready,
+    output logic [WIDTH-1:0] r_data
 );
 
     localparam DEPTH = $clog2(CAPACITY);
@@ -55,7 +55,7 @@ module fifo #(
         if (DEPTH != 0) begin
 
             // Ring buffer constructs
-            TYPE buffer [0:CAPACITY];
+            logic [WIDTH-1:0] buffer [0:CAPACITY];
             logic [DEPTH-1:0] readptr, readptr_next;
             logic [DEPTH-1:0] writeptr, writeptr_next;
             logic empty, empty_next;
@@ -123,7 +123,7 @@ module fifo #(
         // exist in this special case.
         else begin
 
-            TYPE buffer;
+            logic [WIDTH-1:0] buffer;
             // In this special case full and empty are always complements.
             logic empty, empty_next;
             assign w_ready = empty;
