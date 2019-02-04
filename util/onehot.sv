@@ -24,39 +24,24 @@
  * DAMAGE.
  */
 
-// Connect two AXI-Lite channels together.
-module axi_lite_join (
-    axi_lite_channel.slave  master,
-    axi_lite_channel.master slave
+// Helper modules to convert one-hot code to binary representation.
+// Ideally they should be functions but due to SystemVerilog restrictions we cannot parameterise functions.
+module onehot_to_binary #(
+    parameter ONEHOT_WIDTH = 2,
+    parameter BINARY_WIDTH = $clog2(ONEHOT_WIDTH)
+) (
+    input  logic [ONEHOT_WIDTH-1:0] onehot,
+    output logic [BINARY_WIDTH-1:0] binary
 );
 
-    // Static checks of interface matching
-    if (master.ADDR_WIDTH != slave.ADDR_WIDTH ||
-        master.DATA_WIDTH != slave.DATA_WIDTH)
-        $fatal(1, "Interface parameters mismatch");
-
-    assign slave.aw_addr   = master.aw_addr;
-    assign slave.aw_prot   = master.aw_prot;
-    assign slave.aw_valid  = master.aw_valid;
-    assign master.aw_ready = slave.aw_ready;
-
-    assign slave.w_data    = master.w_data;
-    assign slave.w_strb    = master.w_strb;
-    assign slave.w_valid   = master.w_valid;
-    assign master.w_ready  = slave.w_ready;
-
-    assign master.b_resp   = slave.b_resp;
-    assign master.b_valid  = slave.b_valid;
-    assign slave.b_ready   = master.b_ready;
-
-    assign slave.ar_addr   = master.ar_addr;
-    assign slave.ar_prot   = master.ar_prot;
-    assign slave.ar_valid  = master.ar_valid;
-    assign master.ar_ready = slave.ar_ready;
-
-    assign master.r_data   = slave.r_data;
-    assign master.r_resp   = slave.r_resp;
-    assign master.r_valid  = slave.r_valid;
-    assign slave.r_ready   = master.r_ready;
+    for (genvar i = 0; i < BINARY_WIDTH; i++) begin: bin
+        logic [ONEHOT_WIDTH-1:0] bitmask;
+        for (genvar j = 0; j < ONEHOT_WIDTH; j++) begin: one
+            logic [BINARY_WIDTH-1:0] logic_j;
+            assign logic_j = j;
+            assign bitmask[j] = logic_j[i] & onehot[j];
+        end
+        assign binary[i] = |bitmask;
+    end
 
 endmodule

@@ -26,8 +26,8 @@
 
 // A component that converts an AXI-lite interface to a BRAM interface.
 module axi_lite_bram_ctrl #(
-    parameter DATA_WIDTH       = 64,
-    parameter BRAM_ADDR_WIDTH  = 16
+    parameter DATA_WIDTH     ,
+    parameter BRAM_ADDR_WIDTH
 ) (
     axi_lite_channel.slave       master,
 
@@ -44,16 +44,26 @@ module axi_lite_bram_ctrl #(
     // Static checks of interface matching
     // We currently don't strictly enforce UNUSED_ADDR_WIDTH + BRAM_ADDR_WIDTH == master.ADDR_WIDTH and use truncation
     // behaviour instead.
-    initial
-        assert(DATA_WIDTH == master.DATA_WIDTH &&
-               UNUSED_ADDR_WIDTH + BRAM_ADDR_WIDTH <= master.ADDR_WIDTH)
-        else $fatal(1, "ADDR_WIDTH and/or DATA_WIDTH mismatch");
+    if (DATA_WIDTH != master.DATA_WIDTH ||
+        UNUSED_ADDR_WIDTH + BRAM_ADDR_WIDTH > master.ADDR_WIDTH)
+        $fatal(1, "ADDR_WIDTH and/or DATA_WIDTH mismatch");
 
     // Extract clk and rstn signals from interfaces
     logic clk;
     logic rstn;
     assign clk = master.clk;
     assign rstn = master.rstn;
+
+    // High-level description of how this module works:
+    // This BRAM controller only has a single port for both read/write, which means that it needs to serialise
+    // concurrent read/write request. Further more, it needs to deliver both address and write data to the BRAM port in
+    // the same cycle.
+    // What we do here is to use combinatorial paths to make sure that both write address and write data channel will
+    // fire in the same cycle. We also use combinatorial path to stop read address channel from firing when we will be
+    // dealing with a write request.
+    // The design choice we made makes the module really easy, but it introduces a lot combinatorial paths between
+    // AR, AW and W channels. This is forbidden by AXI as it may potentially cause wire loops. Therefore we use
+    // register slices to break the dependencies.
 
     //
     // Break combinatorial path between ready signals.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Gary Guo
+ * Copyright (c) 2019, Gary Guo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,9 +24,15 @@
  * DAMAGE.
  */
 
-// A buffer for AXI interface.
-module axi_buf #(
-    parameter DEPTH = 1
+// A register slice for AXI interface.
+//
+// MODE: 0 (none) 1 (forward) 2 (reverse) 3 (lite both ways) 7 (high performance both ways)
+module axi_regslice #(
+    parameter AW_MODE = 3,
+    parameter  W_MODE = 7,
+    parameter  B_MODE = 3,
+    parameter AR_MODE = 3,
+    parameter  R_MODE = 7
 ) (
     axi_channel.slave  master,
     axi_channel.master slave
@@ -48,9 +54,11 @@ module axi_buf #(
     //
 
     typedef master.aw_pack_t aw_pack_t;
-    fifo #(
-        .TYPE  (aw_pack_t),
-        .DEPTH (DEPTH)
+    regslice #(
+        .TYPE             (aw_pack_t),
+        .FORWARD          ((AW_MODE & 1) != 0),
+        .REVERSE          ((AW_MODE & 2) != 0),
+        .HIGH_PERFORMANCE ((AW_MODE & 4) != 0)
     ) awfifo (
         .clk     (master.clk),
         .rstn    (master.rstn),
@@ -73,9 +81,11 @@ module axi_buf #(
     //
 
     typedef master.w_pack_t w_pack_t;
-    fifo #(
-        .TYPE  (w_pack_t),
-        .DEPTH (DEPTH)
+    regslice #(
+        .TYPE             (w_pack_t),
+        .FORWARD          ((W_MODE & 1) != 0),
+        .REVERSE          ((W_MODE & 2) != 0),
+        .HIGH_PERFORMANCE ((W_MODE & 4) != 0)
     ) wfifo (
         .clk     (master.clk),
         .rstn    (master.rstn),
@@ -92,9 +102,11 @@ module axi_buf #(
     //
 
     typedef master.b_pack_t b_pack_t;
-    fifo #(
-        .TYPE  (b_pack_t),
-        .DEPTH (DEPTH)
+    regslice #(
+        .TYPE             (b_pack_t),
+        .FORWARD          ((B_MODE & 1) != 0),
+        .REVERSE          ((B_MODE & 2) != 0),
+        .HIGH_PERFORMANCE ((B_MODE & 4) != 0)
     ) bfifo (
         .clk     (master.clk),
         .rstn    (master.rstn),
@@ -111,9 +123,11 @@ module axi_buf #(
     //
 
     typedef master.ar_pack_t ar_pack_t;
-    fifo #(
-        .TYPE  (ar_pack_t),
-        .DEPTH (DEPTH)
+    regslice #(
+        .TYPE             (ar_pack_t),
+        .FORWARD          ((AR_MODE & 1) != 0),
+        .REVERSE          ((AR_MODE & 2) != 0),
+        .HIGH_PERFORMANCE ((AR_MODE & 4) != 0)
     ) arfifo (
         .clk     (master.clk),
         .rstn    (master.rstn),
@@ -136,9 +150,11 @@ module axi_buf #(
     //
 
     typedef master.r_pack_t r_pack_t;
-    fifo #(
-        .TYPE  (r_pack_t),
-        .DEPTH (DEPTH)
+    regslice #(
+        .TYPE             (r_pack_t),
+        .FORWARD          ((R_MODE & 1) != 0),
+        .REVERSE          ((R_MODE & 2) != 0),
+        .HIGH_PERFORMANCE ((R_MODE & 4) != 0)
     ) rfifo (
         .clk     (master.clk),
         .rstn    (master.rstn),

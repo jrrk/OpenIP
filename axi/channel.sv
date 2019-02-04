@@ -28,15 +28,15 @@ import axi_common::*;
 
 // Interface that defines an AXI channel.
 interface axi_channel #(
-    ID_WIDTH = 8,
-    ADDR_WIDTH = 48,
-    DATA_WIDTH = 64,
+    parameter ID_WIDTH,
+    parameter ADDR_WIDTH,
+    parameter DATA_WIDTH,
     // Due to limitation of SystemVerilog, minimum of *_USER_WIDTH is 1. If they are unused, let optimiser trim them.
-    AW_USER_WIDTH = 1,
-    W_USER_WIDTH = 1,
-    B_USER_WIDTH = 1,
-    AR_USER_WIDTH = 1,
-    R_USER_WIDTH = 1
+    parameter AW_USER_WIDTH = 1,
+    parameter W_USER_WIDTH = 1,
+    parameter B_USER_WIDTH = 1,
+    parameter AR_USER_WIDTH = 1,
+    parameter R_USER_WIDTH = 1
 ) (
     // Shared clock and reset signals.
     input logic clk,
@@ -46,12 +46,10 @@ interface axi_channel #(
     localparam STRB_WIDTH = DATA_WIDTH / 8;
 
     // Static checks of paramters
-    initial begin
-        // Data width must be a power of 2.
-        assert((1 << $clog2(DATA_WIDTH)) == DATA_WIDTH) else $fatal(1, "DATA_WIDTH is not power of 2");
-        // Data width must be width [8, 1024]
-        assert(8 <= DATA_WIDTH && DATA_WIDTH <= 1024) else $fatal(1, "DATA_WIDTH is not within range [8, 1024]");
-    end
+    // Data width must be a power of 2.
+    if ((1 << $clog2(DATA_WIDTH)) != DATA_WIDTH) $fatal(1, "DATA_WIDTH is not power of 2");
+    // Data width must be width [8, 1024]
+    if (!(8 <= DATA_WIDTH || DATA_WIDTH <= 1024)) $fatal(1, "DATA_WIDTH is not within range [8, 1024]");
 
     logic [ID_WIDTH-1:0]      aw_id;
     logic [ADDR_WIDTH-1:0]    aw_addr;
@@ -209,5 +207,57 @@ interface axi_channel #(
         output r_valid,
         input  r_ready
     );
+
+    //
+    // Useful packed structs for IPs to use
+    //
+    typedef struct packed {
+        logic [ID_WIDTH-1:0]      id;
+        logic [ADDR_WIDTH-1:0]    addr;
+        logic [7:0]               len;
+        logic [2:0]               size;
+        burst_t                   burst;
+        logic                     lock;
+        cache_t                   cache;
+        prot_t                    prot;
+        logic [3:0]               qos;
+        logic [3:0]               region;
+        logic [AW_USER_WIDTH-1:0] user;
+    } aw_pack_t;
+
+    typedef struct packed {
+        logic [DATA_WIDTH-1:0]    data;
+        logic [STRB_WIDTH-1:0]    strb;
+        logic                     last;
+        logic [W_USER_WIDTH-1:0]  user;
+    } w_pack_t;
+
+    typedef struct packed {
+        logic [ID_WIDTH-1:0]      id;
+        resp_t                    resp;
+        logic [B_USER_WIDTH-1:0]      user;
+    } b_pack_t;
+
+    typedef struct packed {
+        logic [ID_WIDTH-1:0]      id;
+        logic [ADDR_WIDTH-1:0]    addr;
+        logic [7:0]               len;
+        logic [2:0]               size;
+        burst_t                   burst;
+        logic                     lock;
+        cache_t                   cache;
+        prot_t                    prot;
+        logic [3:0]               qos;
+        logic [3:0]               region;
+        logic [AR_USER_WIDTH-1:0] user;
+    } ar_pack_t;
+
+    typedef struct packed {
+        logic [ID_WIDTH-1:0]     id;
+        logic [DATA_WIDTH-1:0]   data;
+        resp_t                   resp;
+        logic                    last;
+        logic [R_USER_WIDTH-1:0] user;
+    } r_pack_t;
 
 endinterface
